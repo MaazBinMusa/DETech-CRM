@@ -70,7 +70,7 @@ try:
         .order("sr_no")
         .execute()
     )
-    st.dataframe(response.data, use_page_width=True, hide_index=True)
+    st.dataframe(response.data, use_container_width=True, hide_index=True)
     st.caption(f"{len(response.data)} rows")
 except Exception as error:
     st.error("The summary table could not be loaded.")
