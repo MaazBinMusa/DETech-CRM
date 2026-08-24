@@ -1,3 +1,4 @@
+-e ./src
 psycopg[binary]>=3.2.0
 python-dotenv>=1.2.3
 streamlit>=1.62.0
