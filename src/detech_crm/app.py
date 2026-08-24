@@ -14,14 +14,26 @@ def get_supabase_client(url: str, key: str) -> Client:
     return create_client(url, key)
 
 
+def get_setting(name: str) -> str | None:
+    value = os.getenv(name)
+    if value:
+        return value
+
+    try:
+        return st.secrets[name]
+    except Exception:
+        return None
+
+
 st.title("Create your account")
 st.caption("Join DETech CRM to manage your customer relationships.")
 
-url = os.getenv("SUPABASE_URL")
-key = os.getenv("SUPABASE_KEY")
+url = get_setting("SUPABASE_URL")
+key = get_setting("SUPABASE_KEY")
 
 if not url or not key:
-    st.error("Supabase is not configured. Add SUPABASE_URL and SUPABASE_KEY to your .env file.")
+    st.error("Supabase is not configured.")
+    st.info("Add SUPABASE_URL and SUPABASE_KEY under Manage app > Settings > Secrets in Streamlit Cloud.")
     st.stop()
 
 with st.form("signup_form"):
