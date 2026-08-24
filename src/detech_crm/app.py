@@ -1,10 +1,6 @@
-import os
-
 import streamlit as st
-from dotenv import load_dotenv
-from supabase import Client, create_client
 
-load_dotenv()
+from detech_crm.supabase_client import get_setting, get_supabase_client
 
 st.set_page_config(page_title="Create account | DETech CRM", page_icon="+")
 
@@ -19,22 +15,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
-
-@st.cache_resource
-def get_supabase_client(url: str, key: str) -> Client:
-    return create_client(url, key)
-
-
-def get_setting(name: str) -> str | None:
-    value = os.getenv(name)
-    if value:
-        return value
-
-    try:
-        return st.secrets[name]
-    except Exception:
-        return None
 
 
 st.title("Create your account")
