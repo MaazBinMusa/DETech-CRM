@@ -8,6 +8,18 @@ load_dotenv()
 
 st.set_page_config(page_title="Create account | DETech CRM", page_icon="+")
 
+st.markdown(
+    """
+    <style>
+        #MainMenu, footer, [data-testid="stHeader"], [data-testid="stToolbar"], .stDeployButton {
+            visibility: hidden;
+            display: none;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 @st.cache_resource
 def get_supabase_client(url: str, key: str) -> Client:
