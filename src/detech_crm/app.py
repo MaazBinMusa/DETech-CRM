@@ -8,18 +8,6 @@ load_dotenv()
 
 st.set_page_config(page_title="Create account | DETech CRM", page_icon="+")
 
-st.markdown(
-    """
-    <style>
-        #MainMenu, footer, [data-testid="stHeader"], [data-testid="stToolbar"], .stDeployButton {
-            visibility: hidden;
-            display: none;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 
 @st.cache_resource
 def get_supabase_client(url: str, key: str) -> Client:
@@ -37,8 +25,8 @@ def get_setting(name: str) -> str | None:
         return None
 
 
-st.title("Create your account")
-st.caption("Join DETech CRM to manage your customer relationships.")
+st.title("DETech CRM")
+st.caption("Sign in to continue, or request access to create an account.")
 
 url = get_setting("SUPABASE_URL")
 key = get_setting("SUPABASE_KEY")
@@ -48,12 +36,48 @@ if not url or not key:
     st.info("Add SUPABASE_URL and SUPABASE_KEY under Manage app > Settings > Secrets in Streamlit Cloud.")
     st.stop()
 
-with st.form("signup_form"):
-    full_name = st.text_input("Full name", placeholder="Ada Lovelace")
-    email = st.text_input("Email address", placeholder="ada@example.com")
-    password = st.text_input("Password", type="password", help="Use at least 6 characters.")
-    confirm_password = st.text_input("Confirm password", type="password")
-    submitted = st.form_submit_button("Create account", type="primary", use_container_width=True)
+login_tab, signup_tab = st.tabs(["Log in", "Request access"])
+
+with login_tab:
+    with st.form("login_form"):
+        login_email = st.text_input("Email address", key="login_email")
+        login_password = st.text_input("Password", type="password", key="login_password")
+        login_submitted = st.form_submit_button("Log in", type="primary", use_container_width=True)
+
+    if login_submitted:
+        if not login_email or not login_password:
+            st.warning("Enter your email and password.")
+        else:
+            try:
+                response = get_supabase_client(url, key).auth.sign_in_with_password(
+                    {"email": login_email.strip(), "password": login_password}
+                )
+                user = response.user
+                access = (
+                    get_supabase_client(url, key)
+                    .table("user_access")
+                    .select("approved")
+                    .eq("user_id", user.id)
+                    .maybe_single()
+                    .execute()
+                ) if user else None
+                if user and access and access.data and access.data["approved"] is True:
+                    st.session_state.authenticated = True
+                    st.session_state.user_email = user.email
+                    st.switch_page("pages/summary.py")
+                else:
+                    get_supabase_client(url, key).auth.sign_out()
+                    st.warning("Your account is awaiting approval.")
+            except Exception as error:
+                st.error(f"Login failed: {error}")
+
+with signup_tab:
+    with st.form("signup_form"):
+        full_name = st.text_input("Full name", placeholder="Ada Lovelace")
+        email = st.text_input("Email address", placeholder="ada@example.com")
+        password = st.text_input("Password", type="password", help="Use at least 6 characters.")
+        confirm_password = st.text_input("Confirm password", type="password")
+        submitted = st.form_submit_button("Request access", type="primary", use_container_width=True)
 
 if submitted:
     full_name = full_name.strip()
@@ -77,7 +101,8 @@ if submitted:
             )
 
             if response.user:
-                st.success(f"Account created. Check your email to confirm your account. {response.user.email}")
+                supabase.auth.sign_out()
+                st.success("Access requested. Confirm your email, then wait for administrator approval.")
             else:
                 st.error("We could not create your account. Please try again.")
         except Exception as error:

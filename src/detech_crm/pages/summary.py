@@ -8,18 +8,6 @@ load_dotenv()
 
 st.set_page_config(page_title="Summary 2026 | DETech CRM", page_icon="+")
 
-st.markdown(
-    """
-    <style>
-        #MainMenu, footer, [data-testid="stHeader"], [data-testid="stToolbar"], .stDeployButton {
-            visibility: hidden;
-            display: none;
-        }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 
 @st.cache_resource
 def get_supabase_client(url: str, key: str) -> Client:
@@ -47,18 +35,42 @@ if not url or not key:
     st.info("Add SUPABASE_URL and SUPABASE_KEY under Manage app > Settings > Secrets in Streamlit Cloud.")
     st.stop()
 
+supabase = get_supabase_client(url, key)
+try:
+    user = supabase.auth.get_user().user
+except Exception:
+    user = None
+
+access = (
+    supabase.table("user_access")
+    .select("approved")
+    .eq("user_id", user.id)
+    .maybe_single()
+    .execute()
+) if user else None
+
+if not user or not access or not access.data or access.data["approved"] is not True:
+    st.warning("Please log in with an approved account to view this page.")
+    if st.button("Go to login"):
+        st.switch_page("app.py")
+    st.stop()
+
+if st.button("Log out"):
+    supabase.auth.sign_out()
+    st.session_state.clear()
+    st.switch_page("app.py")
+
 if st.button("Refresh table"):
     st.cache_resource.clear()
 
 try:
     response = (
-        get_supabase_client(url, key)
-        .table("summary_2026")
+        supabase.table("summary_2026")
         .select("*")
         .order("sr_no")
         .execute()
     )
-    st.dataframe(response.data, use_container_width=True, hide_index=True)
+    st.dataframe(response.data, use_page_width=True, hide_index=True)
     st.caption(f"{len(response.data)} rows")
 except Exception as error:
     st.error("The summary table could not be loaded.")
