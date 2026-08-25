@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pandas as pd
 import streamlit as st
 
@@ -120,6 +122,76 @@ visible_columns = [
     "remarks",
 ]
 st.dataframe(filtered[visible_columns], use_container_width=True, hide_index=True)
+
+monthly_report = monthly.reset_index()
+status_report = status_counts.rename_axis("status").reset_index(name="rfqs")
+customer_report = customer_value.rename_axis("customer").reset_index()
+
+workbook = BytesIO()
+with pd.ExcelWriter(workbook, engine="xlsxwriter") as writer:
+    filtered[visible_columns].to_excel(writer, sheet_name="Records", index=False)
+    monthly_report.to_excel(writer, sheet_name="Monthly activity", index=False)
+    status_report.to_excel(writer, sheet_name="Workflow status", index=False)
+    customer_report.to_excel(writer, sheet_name="Customer value", index=False)
+
+    workbook_format = writer.book.add_format({"bold": True, "bg_color": "#E8F0FE"})
+    for worksheet in writer.sheets.values():
+        worksheet.set_row(0, None, workbook_format)
+        worksheet.freeze_panes(1, 0)
+        worksheet.set_column(0, 0, 14)
+        worksheet.set_column(1, 9, 24)
+
+    if not monthly_report.empty:
+        monthly_chart = writer.book.add_chart({"type": "line"})
+        monthly_chart.add_series(
+            {
+                "name": "RFQs",
+                "categories": ["Monthly activity", 1, 0, len(monthly_report), 0],
+                "values": ["Monthly activity", 1, 1, len(monthly_report), 1],
+            }
+        )
+        monthly_chart.set_title({"name": "RFQ activity by month"})
+        monthly_chart.set_x_axis({"name": "Month"})
+        monthly_chart.set_y_axis({"name": "RFQs", "major_gridlines": {"visible": False}})
+        monthly_chart.set_legend({"none": True})
+        monthly_chart_sheet = writer.book.add_worksheet("Charts")
+        monthly_chart_sheet.insert_chart("A1", monthly_chart, {"x_scale": 1.5, "y_scale": 1.3})
+    else:
+        monthly_chart_sheet = writer.book.add_worksheet("Charts")
+
+    if not status_report.empty:
+        status_chart = writer.book.add_chart({"type": "column"})
+        status_chart.add_series(
+            {
+                "name": "RFQs",
+                "categories": ["Workflow status", 1, 0, len(status_report), 0],
+                "values": ["Workflow status", 1, 1, len(status_report), 1],
+            }
+        )
+        status_chart.set_title({"name": "Workflow status"})
+        status_chart.set_legend({"none": True})
+        monthly_chart_sheet.insert_chart("A20", status_chart, {"x_scale": 1.5, "y_scale": 1.3})
+
+    if not customer_report.empty:
+        customer_chart = writer.book.add_chart({"type": "bar"})
+        customer_chart.add_series(
+            {
+                "name": "PO value",
+                "categories": ["Customer value", 1, 0, len(customer_report), 0],
+                "values": ["Customer value", 1, 1, len(customer_report), 1],
+            }
+        )
+        customer_chart.set_title({"name": "Customer order value"})
+        customer_chart.set_legend({"none": True})
+        monthly_chart_sheet.insert_chart("J1", customer_chart, {"x_scale": 1.5, "y_scale": 1.3})
+
+workbook.seek(0)
+st.download_button(
+    "Download Excel report with charts",
+    workbook.getvalue(),
+    "summary-2026-report.xlsx",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+)
 st.download_button(
     "Download filtered report",
     filtered[visible_columns].to_csv(index=False).encode("utf-8"),
