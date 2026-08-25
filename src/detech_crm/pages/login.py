@@ -1,26 +1,10 @@
-import os
-
 import streamlit as st
-from dotenv import load_dotenv
-from supabase import Client, create_client
-
-load_dotenv()
-
-
-@st.cache_resource
-def get_supabase_client(url: str, key: str) -> Client:
-    return create_client(url, key)
-
-
-def get_setting(name: str) -> str | None:
-    value = os.getenv(name)
-    if value:
-        return value
-
-    try:
-        return st.secrets[name]
-    except Exception:
-        return None
+from detech_crm.supabase_client import (
+    get_current_user,
+    get_setting,
+    get_supabase_client,
+    is_user_approved,
+)
 
 
 st.title("DETech CRM")
@@ -35,20 +19,9 @@ if not url or not key:
     st.stop()
 
 supabase = get_supabase_client(url, key)
-try:
-    current_user = supabase.auth.get_user().user
-except Exception:
-    current_user = None
+current_user = get_current_user(supabase)
 
-if current_user:
-    current_access = (
-        supabase.table("user_access")
-        .select("approved")
-        .eq("user_id", current_user.id)
-        .maybe_single()
-        .execute()
-    )
-    if current_access.data and current_access.data["approved"] is True:
+if is_user_approved(supabase, current_user):
         st.session_state.authenticated = True
         st.session_state.user_email = current_user.email
         st.rerun()
@@ -70,14 +43,7 @@ with login_tab:
                     {"email": login_email.strip(), "password": login_password}
                 )
                 user = response.user
-                access = (
-                    supabase.table("user_access")
-                    .select("approved")
-                    .eq("user_id", user.id)
-                    .maybe_single()
-                    .execute()
-                ) if user else None
-                if user and access and access.data and access.data["approved"] is True:
+                if is_user_approved(supabase, user):
                     st.session_state.authenticated = True
                     st.session_state.user_email = user.email
                     st.rerun()

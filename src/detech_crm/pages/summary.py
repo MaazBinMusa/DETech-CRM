@@ -1,28 +1,13 @@
-import os
-
 import streamlit as st
-from dotenv import load_dotenv
-from supabase import Client, create_client
-
-load_dotenv()
+from detech_crm.supabase_client import (
+    get_current_user,
+    get_setting,
+    get_supabase_client,
+    is_user_approved,
+)
 
 st.set_page_config(page_title="Summary 2026 | DETech CRM", page_icon="+")
 
-
-@st.cache_resource
-def get_supabase_client(url: str, key: str) -> Client:
-    return create_client(url, key)
-
-
-def get_setting(name: str) -> str | None:
-    value = os.getenv(name)
-    if value:
-        return value
-
-    try:
-        return st.secrets[name]
-    except Exception:
-        return None
 
 st.title("Summary 2026")
 st.caption("RFQ and sales summary")
@@ -36,20 +21,9 @@ if not url or not key:
     st.stop()
 
 supabase = get_supabase_client(url, key)
-try:
-    user = supabase.auth.get_user().user
-except Exception:
-    user = None
+user = get_current_user(supabase)
 
-access = (
-    supabase.table("user_access")
-    .select("approved")
-    .eq("user_id", user.id)
-    .maybe_single()
-    .execute()
-) if user else None
-
-if not user or not access or not access.data or access.data["approved"] is not True:
+if not is_user_approved(supabase, user):
     st.warning("Please log in with an approved account to view this page.")
     st.stop()
 
