@@ -51,7 +51,7 @@ if current_user:
     if current_access.data and current_access.data["approved"] is True:
         st.session_state.authenticated = True
         st.session_state.user_email = current_user.email
-        st.switch_page("pages/summary.py")
+        st.rerun()
 
 login_tab, signup_tab = st.tabs(["Log in", "Request access"])
 
@@ -80,7 +80,7 @@ with login_tab:
                 if user and access and access.data and access.data["approved"] is True:
                     st.session_state.authenticated = True
                     st.session_state.user_email = user.email
-                    st.switch_page("pages/summary.py")
+                    st.rerun()
                 else:
                     supabase.auth.sign_out()
                     st.warning("Your account is awaiting approval.")

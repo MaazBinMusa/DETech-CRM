@@ -50,8 +50,6 @@ access = (
 
 if not user or not access or not access.data or access.data["approved"] is not True:
     st.warning("Please log in with an approved account to view this page.")
-    if st.button("Go to login"):
-        st.switch_page("pages/login.py")
     st.stop()
 
 st.subheader("Building better customer relationships")
