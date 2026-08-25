@@ -52,13 +52,13 @@ access = (
 if not user or not access or not access.data or access.data["approved"] is not True:
     st.warning("Please log in with an approved account to view this page.")
     if st.button("Go to login"):
-        st.switch_page("app.py")
+        st.switch_page("pages/login.py")
     st.stop()
 
 if st.button("Log out"):
     supabase.auth.sign_out()
     st.session_state.clear()
-    st.switch_page("app.py")
+    st.switch_page("pages/login.py")
 
 if st.button("Refresh table"):
     st.cache_resource.clear()

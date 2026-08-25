@@ -34,6 +34,25 @@ if not url or not key:
     st.info("Add SUPABASE_URL and SUPABASE_KEY under Manage app > Settings > Secrets in Streamlit Cloud.")
     st.stop()
 
+supabase = get_supabase_client(url, key)
+try:
+    current_user = supabase.auth.get_user().user
+except Exception:
+    current_user = None
+
+if current_user:
+    current_access = (
+        supabase.table("user_access")
+        .select("approved")
+        .eq("user_id", current_user.id)
+        .maybe_single()
+        .execute()
+    )
+    if current_access.data and current_access.data["approved"] is True:
+        st.session_state.authenticated = True
+        st.session_state.user_email = current_user.email
+        st.switch_page("pages/summary.py")
+
 login_tab, signup_tab = st.tabs(["Log in", "Request access"])
 
 with login_tab:
@@ -47,7 +66,6 @@ with login_tab:
             st.warning("Enter your email and password.")
         else:
             try:
-                supabase = get_supabase_client(url, key)
                 response = supabase.auth.sign_in_with_password(
                     {"email": login_email.strip(), "password": login_password}
                 )
