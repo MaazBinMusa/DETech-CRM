@@ -9,6 +9,7 @@ if has_approved_session():
         "CRM": [
             st.Page("pages/summary.py", title="Summary 2026", default=True),
             st.Page("pages/customers.py", title="Customers"),
+            st.Page("pages/customer_codes.py", title="Customer codes"),
             st.Page("pages/reports.py", title="Reports"),
             st.Page("pages/about.py", title="About Us"),
         ]

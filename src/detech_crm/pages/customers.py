@@ -59,7 +59,9 @@ with st.form("customer_form"):
     submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
 
 if not available_codes:
-    st.info("There are no unused customer codes available. Add a new code in the code table first.")
+    st.warning("There are no unused customer codes available. Any information entered on this page may be lost if you leave it.")
+    if st.button("Add a new customer code", type="primary", use_container_width=True):
+        st.switch_page("pages/customer_codes.py")
 
 if submitted:
     try:
