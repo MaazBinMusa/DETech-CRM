@@ -1,5 +1,3 @@
-import re
-
 import streamlit as st
 
 from detech_crm.supabase_client import (
@@ -12,61 +10,20 @@ from detech_crm.supabase_client import (
 st.set_page_config(page_title="Customers | DETech CRM", page_icon="+")
 
 
-def normalize_industry_code(industry: str) -> str:
-    cleaned = re.sub(r"[^A-Za-z0-9]", "", (industry or "").strip())
-    if not cleaned:
-        raise ValueError("Please enter the customer's industry.")
-
-    prefix = cleaned[:2].upper()
-    if len(prefix) < 2:
-        raise ValueError("Industry must provide at least two valid characters.")
-    return prefix
-
-
-def generate_customer_code(supabase, industry: str) -> str:
-    industry_code = normalize_industry_code(industry)
-
+def get_available_customer_codes(supabase):
     try:
-        response = supabase.rpc("generate_customer_code", {"p_industry": industry}).execute()
-        code = response.data
-        if code:
-            return str(code)
+        all_codes = supabase.table("customer_codes").select("combined").order("combined").execute()
+        used_codes = supabase.table("customers").select("customer_code").execute()
+
+        all_values = {item["combined"] for item in (all_codes.data or []) if item.get("combined")}
+        used_values = {item["customer_code"] for item in (used_codes.data or []) if item.get("customer_code")}
+        return sorted(all_values - used_values)
     except Exception:
-        pass
-
-    try:
-        existing_rows = (
-            supabase.table("customer_codes")
-            .select("customer_code")
-            .eq("industry_code", industry_code)
-            .execute()
-        )
-
-        max_index = 0
-        for row in existing_rows.data or []:
-            code_value = str(row.get("customer_code") or "")
-            if code_value.isdigit():
-                max_index = max(max_index, int(code_value))
-
-        next_index = max_index + 1
-        customer_code = f"{next_index:04d}"
-        combined_code = f"{industry_code}{customer_code}"
-
-        supabase.table("customer_codes").insert(
-            {
-                "industry_code": industry_code,
-                "customer_code": customer_code,
-                "combined": combined_code,
-            }
-        ).execute()
-
-        return combined_code
-    except Exception as error:
-        raise RuntimeError(f"Unable to generate the customer code: {error}") from error
+        return []
 
 
 st.title("Customers")
-st.caption("Add a client and assign a unique customer code. The customer row references the code in the code table.")
+st.caption("Choose an available customer code from the code table, then add the customer details.")
 
 url = get_setting("SUPABASE_URL")
 key = get_setting("SUPABASE_KEY")
@@ -83,14 +40,26 @@ if not is_user_approved(supabase, user):
     st.warning("Please log in with an approved account to add a customer.")
     st.stop()
 
+available_codes = get_available_customer_codes(supabase)
+
 with st.form("customer_form"):
     customer_name = st.text_input("Customer name", placeholder="e.g. Northwind Steel")
     contact_name = st.text_input("Contact name", placeholder="e.g. Maya Patel")
     industry = st.text_input("Industry", placeholder="e.g. Construction")
+    customer_code = st.selectbox(
+        "Available customer code",
+        options=available_codes,
+        index=0 if available_codes else None,
+        disabled=not available_codes,
+        placeholder="No unused codes available",
+    )
     email = st.text_input("Email", placeholder="name@company.com")
     phone = st.text_input("Phone", placeholder="+1 555 123 4567")
     notes = st.text_area("Notes", placeholder="Optional project or account notes")
     submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
+
+if not available_codes:
+    st.info("There are no unused customer codes available. Add a new code in the code table first.")
 
 if submitted:
     try:
@@ -98,7 +67,9 @@ if submitted:
             st.warning("Customer name is required.")
             st.stop()
 
-        customer_code = generate_customer_code(supabase, industry)
+        if not available_codes:
+            st.warning("No valid customer code is available to assign.")
+            st.stop()
 
         payload = {
             "customer_name": customer_name.strip(),
@@ -117,8 +88,6 @@ if submitted:
             st.json(insert_response.data[0], expanded=False)
         else:
             st.error("The customer could not be saved.")
-    except ValueError as error:
-        st.warning(str(error))
     except Exception as error:
         st.error("Unable to save the customer.")
         st.caption(str(error))
