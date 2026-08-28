@@ -35,32 +35,38 @@ def generate_customer_code(supabase, industry: str) -> str:
         pass
 
     try:
-        existing = (
+        existing_rows = (
             supabase.table("customer_codes")
-            .select("last_index")
+            .select("customer_code")
             .eq("industry_code", industry_code)
-            .maybe_single()
             .execute()
         )
 
-        if existing.data:
-            next_index = int(existing.data.get("last_index") or 0) + 1
-            supabase.table("customer_codes").update(
-                {"last_index": next_index, "updated_at": "now()"}
-            ).eq("industry_code", industry_code).execute()
-        else:
-            next_index = 1
-            supabase.table("customer_codes").insert(
-                {"industry_code": industry_code, "last_index": next_index, "updated_at": "now()"}
-            ).execute()
+        max_index = 0
+        for row in existing_rows.data or []:
+            code_value = str(row.get("customer_code") or "")
+            if code_value.isdigit():
+                max_index = max(max_index, int(code_value))
 
-        return f"{industry_code}{next_index:04d}"
+        next_index = max_index + 1
+        customer_code = f"{next_index:04d}"
+        combined_code = f"{industry_code}{customer_code}"
+
+        supabase.table("customer_codes").insert(
+            {
+                "industry_code": industry_code,
+                "customer_code": customer_code,
+                "combined": combined_code,
+            }
+        ).execute()
+
+        return combined_code
     except Exception as error:
         raise RuntimeError(f"Unable to generate the customer code: {error}") from error
 
 
 st.title("Customers")
-st.caption("Add a client and assign a unique 6-character customer code.")
+st.caption("Add a client and assign a unique customer code. The customer row references the code in the code table.")
 
 url = get_setting("SUPABASE_URL")
 key = get_setting("SUPABASE_KEY")
@@ -88,23 +94,22 @@ with st.form("customer_form"):
 
 if submitted:
     try:
+        if not customer_name.strip():
+            st.warning("Customer name is required.")
+            st.stop()
+
         customer_code = generate_customer_code(supabase, industry)
 
         payload = {
             "customer_name": customer_name.strip(),
             "contact_name": contact_name.strip() or None,
             "industry": industry.strip(),
-            "industry_code": normalize_industry_code(industry),
             "customer_code": customer_code,
             "email": email.strip() or None,
             "phone": phone.strip() or None,
             "notes": notes.strip() or None,
             "created_by": user.id if user else None,
         }
-
-        if not payload["customer_name"]:
-            st.warning("Customer name is required.")
-            st.stop()
 
         insert_response = supabase.table("customers").insert(payload).execute()
         if insert_response.data:
