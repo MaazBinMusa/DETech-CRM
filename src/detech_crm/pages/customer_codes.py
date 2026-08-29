@@ -29,40 +29,41 @@ if not is_user_approved(supabase, user):
     st.stop()
 
 with st.form("customer_code_form"):
-    industry = st.text_input("Industry", placeholder="e.g. Construction")
+    industry_code = st.text_input("Industry code", max_chars=2, placeholder="e.g. CO")
+    customer_code = st.text_input("Customer code", max_chars=4, placeholder="e.g. 0001")
     submitted = st.form_submit_button("Generate code", type="primary", use_container_width=True)
 
 if submitted:
-    cleaned = "".join(ch for ch in (industry or "").strip() if ch.isalnum())
-    if len(cleaned) < 2:
-        st.warning("Industry must include at least two valid alphanumeric characters.")
+    industry_code = (industry_code or "").strip().upper()
+    customer_code = (customer_code or "").strip()
+
+    if len(industry_code) != 2 or not industry_code.isalnum():
+        st.warning("Industry code must be exactly 2 letters or numbers.")
         st.stop()
 
-    industry_code = cleaned[:2].upper()
+    if len(customer_code) != 4 or not customer_code.isdigit():
+        st.warning("Customer code must be exactly 4 digits.")
+        st.stop()
+
+    combined_code = f"{industry_code}{customer_code}"
 
     try:
         existing = (
             supabase.table("customer_codes")
-            .select("customer_code")
-            .eq("industry_code", industry_code)
+            .select("combined")
+            .eq("combined", combined_code)
+            .maybe_single()
             .execute()
         )
 
-        max_index = 0
-        for row in existing.data or []:
-            code_value = str(row.get("customer_code") or "")
-            if code_value.isdigit():
-                max_index = max(max_index, int(code_value))
-
-        next_index = max_index + 1
-        customer_code = f"{next_index:04d}"
-        combined_code = f"{industry_code}{customer_code}"
+        if existing.data:
+            st.warning(f"This code already exists: {combined_code}")
+            st.stop()
 
         insert_response = supabase.table("customer_codes").insert(
             {
                 "industry_code": industry_code,
                 "customer_code": customer_code,
-                "combined": combined_code,
             }
         ).execute()
 
