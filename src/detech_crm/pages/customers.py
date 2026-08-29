@@ -46,22 +46,29 @@ with st.form("customer_form"):
     customer_name = st.text_input("Customer name", placeholder="e.g. Northwind Steel")
     contact_name = st.text_input("Contact name", placeholder="e.g. Maya Patel")
     industry = st.text_input("Industry", placeholder="e.g. Construction")
-    customer_code = st.selectbox(
-        "Available customer code",
-        options=available_codes,
-        index=0 if available_codes else None,
-        disabled=not available_codes,
-        placeholder="No unused codes available",
-    )
+
+    if available_codes:
+        code_col, action_col = st.columns([4, 1.2])
+        with code_col:
+            customer_code = st.selectbox(
+                "Available customer code",
+                options=available_codes,
+                index=0,
+            )
+        with action_col:
+            st.markdown(" ")
+            if st.button("Add code", key="add_code_inline", use_container_width=True):
+                st.switch_page("pages/customer_codes.py")
+    else:
+        st.warning("There are no unused customer codes available. Any information entered on this page may be lost if you leave it.")
+        if st.button("Add new customer code", key="add_new_code_inline", type="primary", use_container_width=True):
+            st.switch_page("pages/customer_codes.py")
+        customer_code = ""
+
     email = st.text_input("Email", placeholder="name@company.com")
     phone = st.text_input("Phone", placeholder="+1 555 123 4567")
     notes = st.text_area("Notes", placeholder="Optional project or account notes")
     submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
-
-if not available_codes:
-    st.warning("There are no unused customer codes available. Any information entered on this page may be lost if you leave it.")
-    if st.button("Add a new customer code", type="primary", use_container_width=True):
-        st.switch_page("pages/customer_codes.py")
 
 if submitted:
     try:
@@ -87,7 +94,7 @@ if submitted:
         insert_response = supabase.table("customers").insert(payload).execute()
         if insert_response.data:
             st.success(f"Customer saved successfully with code: {customer_code}")
-            st.json(insert_response.data[0], expanded=False)
+            st.dataframe(insert_response.data, use_container_width=True, hide_index=True)
         else:
             st.error("The customer could not be saved.")
     except Exception as error:
