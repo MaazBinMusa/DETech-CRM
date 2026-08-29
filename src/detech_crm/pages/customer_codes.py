@@ -84,7 +84,7 @@ try:
         .execute()
     )
 
-    if codes.data:
+    if codes.data and len(codes.data) > 0:
         st.dataframe(codes.data, use_container_width=True, hide_index=True)
     else:
         st.info("No customer codes have been created yet.")

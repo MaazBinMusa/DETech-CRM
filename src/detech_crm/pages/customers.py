@@ -48,27 +48,28 @@ with st.form("customer_form"):
     industry = st.text_input("Industry", placeholder="e.g. Construction")
 
     if available_codes:
-        code_col, action_col = st.columns([4, 1.2])
+        customer_code = st.selectbox(
+            "Available customer code",
+            options=available_codes,
+            index=0,
+        )
+        code_col, save_col = st.columns([1.2, 2.6])
         with code_col:
-            customer_code = st.selectbox(
-                "Available customer code",
-                options=available_codes,
-                index=0,
-            )
-        with action_col:
-            st.markdown(" ")
-            if st.button("Add code", key="add_code_inline", use_container_width=True):
-                st.switch_page("pages/customer_codes.py")
+            add_code_requested = st.form_submit_button("Add code", use_container_width=True)
+        with save_col:
+            submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
     else:
         st.warning("There are no unused customer codes available. Any information entered on this page may be lost if you leave it.")
-        if st.button("Add new customer code", key="add_new_code_inline", type="primary", use_container_width=True):
-            st.switch_page("pages/customer_codes.py")
+        add_code_requested = st.form_submit_button("Add new customer code", type="primary", use_container_width=True)
         customer_code = ""
+        submitted = False
 
     email = st.text_input("Email", placeholder="name@company.com")
     phone = st.text_input("Phone", placeholder="+1 555 123 4567")
     notes = st.text_area("Notes", placeholder="Optional project or account notes")
-    submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
+
+if add_code_requested:
+    st.switch_page("pages/customer_codes.py")
 
 if submitted:
     try:
