@@ -34,52 +34,53 @@ with st.form("customer_code_form"):
     submitted = st.form_submit_button("Generate code", type="primary", use_container_width=True)
 
 if submitted:
+    validation_error = False
     industry_code = (industry_code or "").strip().upper()
     customer_code = (customer_code or "").strip()
 
     if len(industry_code) != 2 or not industry_code.isalpha():
         st.warning("Industry code must be exactly 2 letters only.")
-        st.stop()
+        validation_error = True
 
     if len(customer_code) != 4 or not customer_code.isdigit():
         st.warning("Customer code must be exactly 4 digits only.")
-        st.stop()
+        validation_error = True
 
-    combined_code = f"{industry_code}{customer_code}"
+    if not validation_error:
+        combined_code = f"{industry_code}{customer_code}"
 
-    try:
-        existing = (
-            supabase.table("customer_codes")
-            .select("combined")
-            .eq("combined", combined_code)
-            .maybe_single()
-            .execute()
-        )
+        try:
+            existing = (
+                supabase.table("customer_codes")
+                .select("combined")
+                .eq("combined", combined_code)
+                .maybe_single()
+                .execute()
+            )
 
-        existing_data = getattr(existing, "data", None) if existing is not None else None
-        if existing_data:
-            st.warning(f"This code already exists: {combined_code}")
-            st.stop()
+            existing_data = getattr(existing, "data", None) if existing is not None else None
+            if existing_data:
+                st.warning(f"This code already exists: {combined_code}")
+            else:
+                insert_response = supabase.table("customer_codes").insert(
+                    {
+                        "industry_code": industry_code,
+                        "customer_code": customer_code,
+                        "combined": combined_code,
+                    }
+                ).execute()
 
-        insert_response = supabase.table("customer_codes").insert(
-            {
-                "industry_code": industry_code,
-                "customer_code": customer_code,
-                "combined": combined_code,
-            }
-        ).execute()
+                response_data = getattr(insert_response, "data", None) if insert_response is not None else None
 
-        response_data = getattr(insert_response, "data", None) if insert_response is not None else None
-
-        if response_data is not None:
-            st.success(f"New customer code created: {combined_code}")
-            st.info("You can now return to the Customer page and assign this code to a customer.")
-        else:
-            st.success(f"New customer code created: {combined_code}")
-            st.info("The insert completed successfully, and the code is now available for customer creation.")
-    except Exception as error:
-        st.error("Unable to create a new customer code.")
-        st.caption(str(error))
+                if response_data is not None:
+                    st.success(f"New customer code created: {combined_code}")
+                    st.info("You can now return to the Customer page and assign this code to a customer.")
+                else:
+                    st.success(f"New customer code created: {combined_code}")
+                    st.info("The insert completed successfully, and the code is now available for customer creation.")
+        except Exception as error:
+            st.error("Unable to create a new customer code.")
+            st.caption(str(error))
 
 st.subheader("Current available codes")
 try:
