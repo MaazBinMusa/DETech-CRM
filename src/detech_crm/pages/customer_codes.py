@@ -91,8 +91,9 @@ try:
         .execute()
     )
 
-    if codes.data and len(codes.data) > 0:
-        st.dataframe(codes.data, use_container_width=True, hide_index=True)
+    codes_data = getattr(codes, "data", None) if codes is not None else None
+    if codes_data and len(codes_data) > 0:
+        st.dataframe(codes_data, use_container_width=True, hide_index=True)
     else:
         st.info("No customer codes have been created yet.")
 except Exception as error:
