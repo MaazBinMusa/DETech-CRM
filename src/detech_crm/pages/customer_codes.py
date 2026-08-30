@@ -65,6 +65,7 @@ if submitted:
             {
                 "industry_code": industry_code,
                 "customer_code": customer_code,
+                "combined": combined_code,
             }
         ).execute()
 
