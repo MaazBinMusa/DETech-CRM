@@ -15,8 +15,11 @@ def get_available_customer_codes(supabase):
         all_codes = supabase.table("customer_codes").select("combined").order("combined").execute()
         used_codes = supabase.table("customers").select("customer_code").execute()
 
-        all_values = {item["combined"] for item in (all_codes.data or []) if item.get("combined")}
-        used_values = {item["customer_code"] for item in (used_codes.data or []) if item.get("customer_code")}
+        all_response = getattr(all_codes, "data", None) if all_codes is not None else None
+        used_response = getattr(used_codes, "data", None) if used_codes is not None else None
+
+        all_values = {item["combined"] for item in (all_response or []) if item.get("combined")}
+        used_values = {item["customer_code"] for item in (used_response or []) if item.get("customer_code")}
         return sorted(all_values - used_values)
     except Exception:
         return []
@@ -115,8 +118,9 @@ try:
         .execute()
     )
 
-    if recent.data:
-        st.dataframe(recent.data, use_container_width=True, hide_index=True)
+    recent_data = getattr(recent, "data", None) if recent is not None else None
+    if recent_data:
+        st.dataframe(recent_data, use_container_width=True, hide_index=True)
     else:
         st.info("No customers have been added yet.")
 except Exception as error:

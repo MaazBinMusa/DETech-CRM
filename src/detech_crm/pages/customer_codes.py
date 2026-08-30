@@ -56,7 +56,8 @@ if submitted:
             .execute()
         )
 
-        if existing.data:
+        existing_data = getattr(existing, "data", None) if existing is not None else None
+        if existing_data:
             st.warning(f"This code already exists: {combined_code}")
             st.stop()
 
