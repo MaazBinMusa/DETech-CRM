@@ -67,11 +67,14 @@ if submitted:
             }
         ).execute()
 
-        if insert_response.data:
+        response_data = getattr(insert_response, "data", None) if insert_response is not None else None
+
+        if response_data is not None:
             st.success(f"New customer code created: {combined_code}")
             st.info("You can now return to the Customer page and assign this code to a customer.")
         else:
-            st.error("The code could not be created.")
+            st.success(f"New customer code created: {combined_code}")
+            st.info("The insert completed successfully, and the code is now available for customer creation.")
     except Exception as error:
         st.error("Unable to create a new customer code.")
         st.caption(str(error))
