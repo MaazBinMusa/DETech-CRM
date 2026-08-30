@@ -37,12 +37,12 @@ if submitted:
     industry_code = (industry_code or "").strip().upper()
     customer_code = (customer_code or "").strip()
 
-    if len(industry_code) != 2 or not industry_code.isalnum():
-        st.warning("Industry code must be exactly 2 letters or numbers.")
+    if len(industry_code) != 2 or not industry_code.isalpha():
+        st.warning("Industry code must be exactly 2 letters only.")
         st.stop()
 
     if len(customer_code) != 4 or not customer_code.isdigit():
-        st.warning("Customer code must be exactly 4 digits.")
+        st.warning("Customer code must be exactly 4 digits only.")
         st.stop()
 
     combined_code = f"{industry_code}{customer_code}"
