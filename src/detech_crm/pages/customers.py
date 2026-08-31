@@ -57,24 +57,20 @@ with st.form("customer_form"):
             index=0,
         )
         st.caption("Need a different customer code? Create one before saving this customer.")
-        add_code_col, spacer_col, save_col = st.columns([1.3, 1.0, 2.2])
-        with add_code_col:
+        code_action_col = st.columns([1, 3])[0]
+        with code_action_col:
             add_code_requested = st.form_submit_button("Add code", use_container_width=True)
-        with save_col:
-            submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
     else:
         st.warning("There are no unused customer codes available. Any information entered on this page may be lost if you leave it.")
-        add_code_requested = st.form_submit_button("Add new customer code", type="primary", use_container_width=True)
+        add_code_requested = st.form_submit_button("Add new customer code", use_container_width=True)
         customer_code = ""
-        submitted = False
 
     email = st.text_input("Email", placeholder="name@company.com")
     phone = st.text_input("Phone", placeholder="+1 555 123 4567")
     notes = st.text_area("Notes", placeholder="Optional project or account notes")
 
-    if available_codes:
-        st.write("")
-        submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
+    st.write("")
+    submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
 
 if add_code_requested:
     st.switch_page("pages/customer_codes.py")
