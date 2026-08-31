@@ -56,8 +56,9 @@ with st.form("customer_form"):
             options=available_codes,
             index=0,
         )
-        code_col, save_col = st.columns([1.2, 2.6])
-        with code_col:
+        st.caption("Need a different customer code? Create one before saving this customer.")
+        add_code_col, spacer_col, save_col = st.columns([1.3, 1.0, 2.2])
+        with add_code_col:
             add_code_requested = st.form_submit_button("Add code", use_container_width=True)
         with save_col:
             submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
@@ -70,6 +71,10 @@ with st.form("customer_form"):
     email = st.text_input("Email", placeholder="name@company.com")
     phone = st.text_input("Phone", placeholder="+1 555 123 4567")
     notes = st.text_area("Notes", placeholder="Optional project or account notes")
+
+    if available_codes:
+        st.write("")
+        submitted = st.form_submit_button("Save customer", type="primary", use_container_width=True)
 
 if add_code_requested:
     st.switch_page("pages/customer_codes.py")
