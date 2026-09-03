@@ -1,0 +1,1 @@
+"""DETech CRM backend package."""
