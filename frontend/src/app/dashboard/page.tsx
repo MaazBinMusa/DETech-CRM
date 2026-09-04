@@ -125,6 +125,14 @@ export default function DashboardPage() {
             <p className="text-sm uppercase tracking-[0.2em] text-emerald-100">Track</p>
             <h2 className="mt-2 text-2xl font-bold">Quotations</h2>
           </a>
+
+          <a
+            href="/quotation-hub"
+            className="rounded-xl bg-emerald-600 p-5 text-white transition hover:bg-emerald-700"
+          >
+            <p className="text-sm uppercase tracking-[0.2em] text-emerald-100">Visualize</p>
+            <h2 className="mt-2 text-2xl font-bold">Quotation Hub</h2>
+          </a>
         </div>
       </div>
     </main>
