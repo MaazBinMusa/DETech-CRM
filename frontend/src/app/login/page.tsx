@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { apiRequest, AuthSession, saveSession } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,18 +16,20 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    setLoading(false);
-
-    if (signInError) {
-      setError(signInError.message);
+    try {
+      const result = await apiRequest<{ session: AuthSession }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      if (!result.session) throw new Error("Login did not return a session.");
+      saveSession(result.session);
+    } catch (loginError) {
+      setLoading(false);
+      setError(loginError instanceof Error ? loginError.message : "Unable to log in.");
       return;
     }
 
+    setLoading(false);
     router.push("/dashboard");
   };
 

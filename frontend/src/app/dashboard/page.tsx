@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { apiRequest, getSession, saveSession } from "@/lib/api";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -13,40 +13,35 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      const sessionUser = data.session?.user ?? null;
+    const loadDashboard = async () => {
+      const session = getSession();
+      const sessionUser = session?.user ?? null;
 
       if (!sessionUser) {
         router.push("/login");
         return;
       }
 
-      setUserEmail(sessionUser.email ?? null);
-      const [customersResult, codesResult] = await Promise.all([
-        supabase.from("customers").select("*", { count: "exact", head: true }),
-        supabase.from("customer_codes").select("*", { count: "exact", head: true }),
-      ]);
-
-      if (customersResult.error || codesResult.error) {
-        setDataError(
-          customersResult.error?.message ||
-            codesResult.error?.message ||
-            "Unable to load dashboard counts.",
-        );
-      } else {
-        setCustomerCount(customersResult.count ?? 0);
-        setCodeCount(codesResult.count ?? 0);
+      setUserEmail(typeof sessionUser.email === "string" ? sessionUser.email : null);
+      try {
+        const [customers, codes] = await Promise.all([
+          apiRequest<unknown[]>("/api/customers", { authenticated: true }),
+          apiRequest<unknown[]>("/api/customer-codes", { authenticated: true }),
+        ]);
+        setCustomerCount(customers.length);
+        setCodeCount(codes.length);
+      } catch (dataLoadError) {
+        setDataError(dataLoadError instanceof Error ? dataLoadError.message : "Unable to load dashboard counts.");
       }
 
       setLoading(false);
     };
 
-    getSession();
+    loadDashboard();
   }, [router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    saveSession(null);
     router.push("/login");
   };
 

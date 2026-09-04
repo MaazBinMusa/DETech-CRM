@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { apiRequest, getSession } from "@/lib/api";
 
 type CustomerCodeRow = {
   id: string;
@@ -42,8 +42,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
+      if (!getSession()) {
         router.push("/login");
         return;
       }
@@ -57,21 +56,21 @@ export default function CustomersPage() {
   }, [router]);
 
   const fetchCodes = async () => {
-    const { data, error: codesError } = await supabase.from("customer_codes").select("id, combined").order("combined", { ascending: true });
-    if (codesError) {
-      setError(codesError.message);
-      return;
+    try {
+      const data = await apiRequest<CustomerCodeRow[]>("/api/customer-codes", { authenticated: true });
+      setCodes(data);
+    } catch (codesError) {
+      setError(codesError instanceof Error ? codesError.message : "Unable to load customer codes.");
     }
-    setCodes((data ?? []) as CustomerCodeRow[]);
   };
 
   const fetchCustomers = async () => {
-    const { data, error: customerError } = await supabase.from("customers").select("*").order("created_at", { ascending: false });
-    if (customerError) {
-      setError(customerError.message);
-      return;
+    try {
+      const data = await apiRequest<CustomerRow[]>("/api/customers", { authenticated: true });
+      setCustomers(data);
+    } catch (customerError) {
+      setError(customerError instanceof Error ? customerError.message : "Unable to load customers.");
     }
-    setCustomers((data ?? []) as CustomerRow[]);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -96,14 +95,19 @@ export default function CustomersPage() {
       notes: form.notes.trim(),
     };
 
-    const { error: insertError } = await supabase.from("customers").insert([payload]);
-    setSubmitting(false);
-
-    if (insertError) {
-      setError(insertError.message);
+    try {
+      await apiRequest<CustomerRow>("/api/customers", {
+        method: "POST",
+        authenticated: true,
+        body: JSON.stringify(payload),
+      });
+    } catch (insertError) {
+      setSubmitting(false);
+      setError(insertError instanceof Error ? insertError.message : "Unable to save the customer.");
       return;
     }
 
+    setSubmitting(false);
     setForm(emptyForm);
     setMessage("Customer created successfully.");
     await fetchCustomers();

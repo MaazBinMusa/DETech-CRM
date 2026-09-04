@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { apiRequest, AuthSession, saveSession } from "@/lib/api";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -18,24 +18,22 @@ export default function SignUpPage() {
     setError("");
     setMessage("");
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    setLoading(false);
-
-    if (signUpError) {
-      setError(signUpError.message);
-      return;
+    try {
+      const result = await apiRequest<{ user: Record<string, unknown> | null; session: AuthSession | null }>(
+        "/api/auth/signup",
+        { method: "POST", body: JSON.stringify({ email, password }) },
+      );
+      setLoading(false);
+      if (!result.session) {
+        setMessage("Check your email to confirm your account.");
+        return;
+      }
+      saveSession(result.session);
+      router.push("/dashboard");
+    } catch (signUpError) {
+      setLoading(false);
+      setError(signUpError instanceof Error ? signUpError.message : "Unable to create account.");
     }
-
-    if (data.user && !data.session) {
-      setMessage("Check your email to confirm your account.");
-      return;
-    }
-
-    router.push("/dashboard");
   };
 
   return (

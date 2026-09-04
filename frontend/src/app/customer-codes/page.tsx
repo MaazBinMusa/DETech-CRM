@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { apiRequest, getSession } from "@/lib/api";
 
 type CustomerCodeRow = {
   id: string;
@@ -28,8 +28,7 @@ export default function CustomerCodesPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session) {
+      if (!getSession()) {
         router.push("/login");
         return;
       }
@@ -42,14 +41,12 @@ export default function CustomerCodesPage() {
   }, [router]);
 
   const fetchCodes = async () => {
-    const { data, error: fetchError } = await supabase.from("customer_codes").select("*").order("created_at", { ascending: false });
-
-    if (fetchError) {
-      setError(fetchError.message);
-      return;
+    try {
+      const data = await apiRequest<CustomerCodeRow[]>("/api/customer-codes", { authenticated: true });
+      setCodes(data);
+    } catch (fetchError) {
+      setError(fetchError instanceof Error ? fetchError.message : "Unable to load customer codes.");
     }
-
-    setCodes((data ?? []) as CustomerCodeRow[]);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -75,21 +72,19 @@ export default function CustomerCodesPage() {
 
     const combined = `${industry}${customer}`;
 
-    const { error: insertError } = await supabase.from("customer_codes").insert([
-      {
-        industry_code: industry,
-        customer_code: customer,
-        combined,
-      },
-    ]);
-
-    setSubmitting(false);
-
-    if (insertError) {
-      setError(insertError.message);
+    try {
+      await apiRequest<CustomerCodeRow>("/api/customer-codes", {
+        method: "POST",
+        authenticated: true,
+        body: JSON.stringify({ industry_code: industry, customer_code: customer }),
+      });
+    } catch (insertError) {
+      setSubmitting(false);
+      setError(insertError instanceof Error ? insertError.message : "Unable to create customer code.");
       return;
     }
 
+    setSubmitting(false);
     setForm(emptyForm);
     setMessage(`Code ${combined} created successfully.`);
     await fetchCodes();
