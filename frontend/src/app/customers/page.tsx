@@ -195,8 +195,8 @@ export default function CustomersPage() {
                     required
                   >
                     <option value="">Select a valid code</option>
-                    {codes.map((code) => (
-                      <option key={code.id} value={code.combined}>
+                    {codes.map((code, index) => (
+                      <option key={code.id ?? `${code.combined}-${index}`} value={code.combined}>
                         {code.combined}
                       </option>
                     ))}
