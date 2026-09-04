@@ -7,6 +7,9 @@ import { supabase } from "@/lib/supabase";
 export default function DashboardPage() {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [customerCount, setCustomerCount] = useState<number | null>(null);
+  const [codeCount, setCodeCount] = useState<number | null>(null);
+  const [dataError, setDataError] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,6 +23,22 @@ export default function DashboardPage() {
       }
 
       setUserEmail(sessionUser.email ?? null);
+      const [customersResult, codesResult] = await Promise.all([
+        supabase.from("customers").select("*", { count: "exact", head: true }),
+        supabase.from("customer_codes").select("*", { count: "exact", head: true }),
+      ]);
+
+      if (customersResult.error || codesResult.error) {
+        setDataError(
+          customersResult.error?.message ||
+            codesResult.error?.message ||
+            "Unable to load dashboard counts.",
+        );
+      } else {
+        setCustomerCount(customersResult.count ?? 0);
+        setCodeCount(codesResult.count ?? 0);
+      }
+
       setLoading(false);
     };
 
@@ -68,14 +87,24 @@ export default function DashboardPage() {
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-800/50">
             <p className="text-sm text-slate-500 dark:text-slate-400">Customers</p>
-            <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">0</p>
+            <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+              {customerCount ?? "—"}
+            </p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-800/50">
             <p className="text-sm text-slate-500 dark:text-slate-400">Customer codes</p>
-            <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">0</p>
+            <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+              {codeCount ?? "—"}
+            </p>
           </div>
         </div>
+
+        {dataError ? (
+          <p className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            Counts unavailable: {dataError}
+          </p>
+        ) : null}
 
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           <a
