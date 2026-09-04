@@ -16,15 +16,33 @@ def response_data(response: Any) -> Any:
     return getattr(response, "data", None) if response is not None else None
 
 
+def auth_response_data(response: Any) -> Dict[str, Any]:
+    if response is None:
+        return {"user": None, "session": None}
+
+    user = getattr(response, "user", None)
+    session = getattr(response, "session", None)
+    if user is None and session is None:
+        data = response_data(response)
+        if isinstance(data, dict):
+            user = data.get("user")
+            session = data.get("session")
+
+    return {
+        "user": user.model_dump(mode="json") if hasattr(user, "model_dump") else user,
+        "session": session.model_dump(mode="json") if hasattr(session, "model_dump") else session,
+    }
+
+
 @router.post("/auth/signup")
 def signup(credentials: AuthCredentials) -> Dict[str, Any]:
-    result = get_supabase_client().auth.sign_up(
-        {"email": credentials.email, "password": credentials.password}
-    )
-    data = response_data(result) or {}
-    session = data.get("session") if isinstance(data, dict) else None
-    user = data.get("user") if isinstance(data, dict) else None
-    return {"user": user, "session": session}
+    try:
+        result = get_supabase_client().auth.sign_up(
+            {"email": credentials.email, "password": credentials.password}
+        )
+        return auth_response_data(result)
+    except Exception as error:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from error
 
 
 @router.post("/auth/login")
@@ -36,8 +54,7 @@ def login(credentials: AuthCredentials) -> Dict[str, Any]:
     except Exception as error:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error)) from error
 
-    data = response_data(result) or {}
-    return {"user": data.get("user"), "session": data.get("session")}
+    return auth_response_data(result)
 
 
 @router.post("/auth/logout")
