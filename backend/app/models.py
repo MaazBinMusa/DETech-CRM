@@ -23,3 +23,15 @@ class CustomerCreate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     notes: Optional[str] = None
+
+
+class QuotationCreate(BaseModel):
+    customer_name: str
+    rfq_description: str
+    rfq_date: str
+    due_date: Optional[str] = None
+    status: str
+    po_status: Optional[str] = None
+    po_amount: Optional[float] = None
+    bid_security: Optional[float] = None
+    remarks: Optional[str] = None

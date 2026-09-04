@@ -101,7 +101,7 @@ export default function DashboardPage() {
           </p>
         ) : null}
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
           <a
             href="/customer-codes"
             className="rounded-xl bg-sky-600 p-5 text-white transition hover:bg-sky-700"
@@ -116,6 +116,14 @@ export default function DashboardPage() {
           >
             <p className="text-sm uppercase tracking-[0.2em] text-slate-300">Manage</p>
             <h2 className="mt-2 text-2xl font-bold">Customers</h2>
+          </a>
+
+          <a
+            href="/quotations"
+            className="rounded-xl bg-emerald-600 p-5 text-white transition hover:bg-emerald-700"
+          >
+            <p className="text-sm uppercase tracking-[0.2em] text-emerald-100">Track</p>
+            <h2 className="mt-2 text-2xl font-bold">Quotations</h2>
           </a>
         </div>
       </div>

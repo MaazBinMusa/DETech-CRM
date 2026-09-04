@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.dependencies import get_current_user, get_database_client
-from app.models import AuthCredentials, CustomerCodeCreate, CustomerCreate
+from app.models import AuthCredentials, CustomerCodeCreate, CustomerCreate, QuotationCreate
 from app.supabase_client import get_supabase_client
 
 router = APIRouter(prefix="/api")
@@ -132,3 +132,37 @@ def create_customer(
     result = client.table("customers").insert(body).execute()
     rows = response_data(result) or []
     return rows[0] if rows else body
+
+
+@router.get("/quotations")
+def list_quotations(
+    _: Any = Depends(get_current_user),
+    client: Any = Depends(get_database_client),
+) -> List[Dict[str, Any]]:
+    try:
+        result = client.table("quotations").select("*").order("rfq_date", desc=True).execute()
+        return response_data(result) or []
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Unable to read quotations from Supabase: {error}") from error
+
+
+@router.post("/quotations", status_code=status.HTTP_201_CREATED)
+def create_quotation(
+    payload: QuotationCreate,
+    user: Any = Depends(get_current_user),
+    client: Any = Depends(get_database_client),
+) -> Dict[str, Any]:
+    try:
+        customer = client.table("customers").select("customer_name").eq("customer_name", payload.customer_name).maybe_single().execute()
+        if not response_data(customer):
+            raise HTTPException(status_code=422, detail="Please select an existing customer.")
+
+        body = payload.model_dump()
+        body["created_by"] = getattr(user, "id", None)
+        result = client.table("quotations").insert(body).execute()
+        rows = response_data(result) or []
+        return rows[0] if rows else body
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Unable to create quotation in Supabase: {error}") from error
