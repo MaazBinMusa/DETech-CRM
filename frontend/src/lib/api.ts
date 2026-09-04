@@ -48,10 +48,18 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
     }
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...requestOptions,
-    headers: requestHeaders,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...requestOptions,
+      headers: requestHeaders,
+    });
+  } catch (error) {
+    throw new Error(
+      `Unable to reach the backend at ${API_URL}. Make sure FastAPI is running on port 8000.`,
+      { cause: error },
+    );
+  }
   const body = await response.json().catch(() => null);
 
   if (!response.ok) {
