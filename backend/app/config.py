@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     app_name: str = "DETech CRM API"
     backend_port: int = Field(default=8000, alias="BACKEND_PORT")
+    frontend_url: str = Field(default="https://de-tech-crm.vercel.app", alias="FRONTEND_URL")
     supabase_url: str = Field(default="", alias="SUPABASE_URL")
     supabase_anon_key: str = Field(default="", alias="SUPABASE_ANON_KEY")
     supabase_service_role_key: str = Field(default="", alias="SUPABASE_SERVICE_ROLE_KEY")
