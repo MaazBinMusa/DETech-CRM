@@ -264,8 +264,8 @@ export default function CustomersPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400">No customers created yet.</p>
             ) : (
               <div className="space-y-3">
-                {customers.map((customer) => (
-                  <div key={customer.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+                {customers.map((customer, index) => (
+                  <div key={customer.id ?? `${customer.customer_code}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-slate-900 dark:text-white">{customer.customer_name}</p>
                       <span className="rounded bg-sky-100 px-2 py-1 text-xs font-medium text-sky-700 dark:bg-sky-900/40 dark:text-sky-200">

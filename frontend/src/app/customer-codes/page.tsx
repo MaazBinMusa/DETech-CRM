@@ -182,9 +182,9 @@ export default function CustomerCodesPage() {
               <p className="text-sm text-slate-500 dark:text-slate-400">No customer codes created yet.</p>
             ) : (
               <div className="space-y-3">
-                {codes.map((row) => (
+                {codes.map((row, index) => (
                   <div
-                    key={row.id}
+                    key={row.id ?? `${row.combined}-${index}`}
                     className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/50"
                   >
                     <span className="font-semibold text-slate-900 dark:text-white">{row.combined}</span>
