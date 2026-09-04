@@ -60,10 +60,19 @@ export async function apiRequest<T>(path: string, options: ApiOptions = {}): Pro
       { cause: error },
     );
   }
-  const body = await response.json().catch(() => null);
+  const responseText = await response.text();
+  let body: unknown = null;
+  try {
+    body = responseText ? JSON.parse(responseText) : null;
+  } catch {
+    body = null;
+  }
 
   if (!response.ok) {
-    const detail = body && typeof body.detail === "string" ? body.detail : "Request failed.";
+    const detail =
+      body && typeof body === "object" && "detail" in body && typeof body.detail === "string"
+        ? body.detail
+        : responseText || `Request failed with status ${response.status}.`;
     throw new Error(detail);
   }
 

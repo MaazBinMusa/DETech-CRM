@@ -67,8 +67,11 @@ def list_customer_codes(
     _: Any = Depends(get_current_user),
     client: Any = Depends(get_database_client),
 ) -> List[Dict[str, Any]]:
-    result = client.table("customer_codes").select("*").order("created_at", desc=True).execute()
-    return response_data(result) or []
+    try:
+        result = client.table("customer_codes").select("*").order("created_at", desc=True).execute()
+        return response_data(result) or []
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Unable to read customer codes from Supabase: {error}") from error
 
 
 @router.post("/customer-codes", status_code=status.HTTP_201_CREATED)
@@ -85,13 +88,19 @@ def create_customer_code(
         raise HTTPException(status_code=422, detail="Customer code must be exactly 4 digits.")
 
     combined = industry_code + customer_code
-    existing = client.table("customer_codes").select("*").eq("combined", combined).maybe_single().execute()
+    try:
+        existing = client.table("customer_codes").select("*").eq("combined", combined).maybe_single().execute()
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Unable to check customer codes in Supabase: {error}") from error
     if response_data(existing):
         raise HTTPException(status_code=409, detail="This customer code already exists.")
 
-    result = client.table("customer_codes").insert(
-        {"industry_code": industry_code, "customer_code": customer_code, "combined": combined}
-    ).execute()
+    try:
+        result = client.table("customer_codes").insert(
+            {"industry_code": industry_code, "customer_code": customer_code, "combined": combined}
+        ).execute()
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Unable to create customer code in Supabase: {error}") from error
     rows = response_data(result) or []
     return rows[0] if rows else {"combined": combined}
 
@@ -101,8 +110,11 @@ def list_customers(
     _: Any = Depends(get_current_user),
     client: Any = Depends(get_database_client),
 ) -> List[Dict[str, Any]]:
-    result = client.table("customers").select("*").order("created_at", desc=True).execute()
-    return response_data(result) or []
+    try:
+        result = client.table("customers").select("*").order("created_at", desc=True).execute()
+        return response_data(result) or []
+    except Exception as error:
+        raise HTTPException(status_code=502, detail=f"Unable to read customers from Supabase: {error}") from error
 
 
 @router.post("/customers", status_code=status.HTTP_201_CREATED)
