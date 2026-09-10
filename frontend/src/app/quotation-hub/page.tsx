@@ -22,45 +22,6 @@ type Quotation = {
   bid_security?: number | null;
 };
 
-const demoCustomers: Customer[] = [
-  "AEMCL", "GCU-Lahore", "I2C Pakistan", "Shadab Textile Mills", "OMS Private Limited",
-  "Ripple Solution", "OLMRTS", "CENUM Hospital", "Northwind Steel", "Meridian Foods",
-  "Atlas Engineering", "Crescent Bank", "Vertex Systems", "Summit Healthcare",
-  "Pioneer Textiles", "Bluebird Logistics", "Harbor Energy", "Nexus Education",
-  "Eastline Traders", "Silverline Pharma", "Cobalt Manufacturing", "Urban Grid",
-  "Evergreen Supplies", "Crown Packaging", "Mosaic Retail", "Prime Distribution",
-].map((name, index) => ({
-  customer_name: name,
-  customer_code: `CU${String(index + 1).padStart(4, "0")}`,
-}));
-
-const demoStatuses = ["Quotation Submitted", "In progress", "Won", "Submitted", "Lost", "Quotation Submitted"];
-const demoDescriptions = [
-  "RFQ for network equipment and accessories",
-  "RFQ for workstations and display units",
-  "RFQ for printer supplies and toner",
-  "RFQ for storage, memory and laptop parts",
-  "RFQ for security and surveillance equipment",
-];
-
-const demoQuotations: Quotation[] = Array.from({ length: 30 }, (_, index) => {
-  const customer = demoCustomers[index % demoCustomers.length];
-  const month = String((index % 6) + 1).padStart(2, "0");
-  const day = String((index % 24) + 1).padStart(2, "0");
-  const dueDay = String(((index + 7) % 27) + 1).padStart(2, "0");
-  return {
-    id: `demo-${index}`,
-    customer_name: customer.customer_name,
-    rfq_description: demoDescriptions[index % demoDescriptions.length],
-    rfq_date: `2026-${month}-${day}`,
-    due_date: `2026-${month}-${dueDay}`,
-    status: demoStatuses[index % demoStatuses.length],
-    po_status: index % 3 === 0 ? "Order Received" : null,
-    po_amount: index % 3 === 0 ? 48000 + index * 7350 : null,
-    bid_security: index % 4 === 0 ? 2500 + index * 100 : null,
-  };
-});
-
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const statusGroups = ["Quotation Submitted", "In progress", "Won", "Lost"];
 
@@ -74,11 +35,10 @@ function statusTone(status: string) {
 export default function QuotationHubPage() {
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [quotations, setQuotations] = useState<Quotation[]>(demoQuotations);
+  const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [loading, setLoading] = useState(true);
-  const [demoMode, setDemoMode] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -93,13 +53,9 @@ export default function QuotationHubPage() {
           apiRequest<Customer[]>("/api/customers", { authenticated: true }),
           apiRequest<Quotation[]>("/api/quotations", { authenticated: true }),
         ]);
-        setCustomers(customerData.length ? customerData : demoCustomers);
-        setQuotations(quotationData.length ? quotationData : demoQuotations);
-        setDemoMode(quotationData.length === 0);
+        setCustomers(customerData);
+        setQuotations(quotationData);
       } catch (loadError) {
-        setCustomers(demoCustomers);
-        setQuotations(demoQuotations);
-        setDemoMode(true);
         setError(loadError instanceof Error ? loadError.message : "Live data is unavailable.");
       } finally {
         setLoading(false);
@@ -132,7 +88,6 @@ export default function QuotationHubPage() {
           <div>
             <div className="flex items-center gap-3">
               <p className="text-xs font-bold uppercase tracking-[0.28em] text-emerald-700 dark:text-emerald-400">DETech / Intelligence</p>
-              {demoMode ? <span className="rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">Demo tape</span> : null}
             </div>
             <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-950 dark:text-white">Quotation Hub</h1>
             <p className="mt-2 max-w-2xl text-sm text-slate-600 dark:text-slate-400">A live view of demand, deadlines, opportunity value, and customer momentum.</p>
@@ -155,7 +110,7 @@ export default function QuotationHubPage() {
           </div>
         </div>
 
-        {error ? <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Live data unavailable, so the Hub is showing labeled demo data. {error}</p> : null}
+        {error ? <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">Live data unavailable: {error}</p> : null}
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
